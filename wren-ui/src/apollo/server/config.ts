@@ -22,6 +22,7 @@ export interface IConfig {
   generationModel?: string;
 
   // ibis server
+  experimentalEngineRustVersion?: boolean;
   ibisServerEndpoint: string;
 
   // encryption
@@ -39,6 +40,12 @@ export interface IConfig {
   wrenEngineVersion?: string;
   wrenAIVersion?: string;
   wrenProductVersion?: string;
+
+  // generate recommendation questions max categories
+  projectRecommendationQuestionMaxCategories?: number;
+  projectRecommendationQuestionsMaxQuestions?: number;
+  threadRecommendationQuestionMaxCategories?: number;
+  threadRecommendationQuestionsMaxQuestions?: number;
 }
 
 const defaultConfig = {
@@ -64,6 +71,7 @@ const defaultConfig = {
   wrenAIEndpoint: 'http://localhost:5555',
 
   // ibis server
+  experimentalEngineRustVersion: false,
   ibisServerEndpoint: 'http://127.0.0.1:8000',
 
   // encryption
@@ -101,6 +109,8 @@ const config = {
   generationModel: process.env.GENERATION_MODEL,
 
   // ibis server
+  experimentalEngineRustVersion:
+    process.env.EXPERIMENTAL_ENGINE_RUST_VERSION === 'true',
   ibisServerEndpoint: process.env.IBIS_SERVER_ENDPOINT,
 
   // encryption
@@ -120,6 +130,24 @@ const config = {
   wrenEngineVersion: process.env.WREN_ENGINE_VERSION,
   wrenAIVersion: process.env.WREN_AI_SERVICE_VERSION,
   wrenProductVersion: process.env.WREN_PRODUCT_VERSION,
+
+  // generate recommendation questions max questions
+  projectRecommendationQuestionMaxCategories: process.env
+    .PROJECT_RECOMMENDATION_QUESTION_MAX_CATEGORIES
+    ? parseInt(process.env.PROJECT_RECOMMENDATION_QUESTION_MAX_CATEGORIES)
+    : 3,
+  projectRecommendationQuestionsMaxQuestions: process.env
+    .PROJECT_RECOMMENDATION_QUESTIONS_MAX_QUESTIONS
+    ? parseInt(process.env.PROJECT_RECOMMENDATION_QUESTIONS_MAX_QUESTIONS)
+    : 3,
+  threadRecommendationQuestionMaxCategories: process.env
+    .THREAD_RECOMMENDATION_QUESTION_MAX_CATEGORIES
+    ? parseInt(process.env.THREAD_RECOMMENDATION_QUESTION_MAX_CATEGORIES)
+    : 3,
+  threadRecommendationQuestionsMaxQuestions: process.env
+    .THREAD_RECOMMENDATION_QUESTIONS_MAX_QUESTIONS
+    ? parseInt(process.env.THREAD_RECOMMENDATION_QUESTIONS_MAX_QUESTIONS)
+    : 1,
 };
 
 export function getConfig(): IConfig {

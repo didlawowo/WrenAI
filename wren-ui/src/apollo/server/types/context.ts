@@ -1,6 +1,9 @@
-import { IIbisAdaptor } from '../adaptors/ibisAdaptor';
-import { IWrenEngineAdaptor } from '../adaptors/wrenEngineAdaptor';
-import { IConfig } from '../config';
+import { IConfig } from '@server/config';
+import {
+  IIbisAdaptor,
+  IWrenAIAdaptor,
+  IWrenEngineAdaptor,
+} from '@server/adaptors';
 import {
   IModelColumnRepository,
   IModelNestedColumnRepository,
@@ -8,9 +11,12 @@ import {
   IProjectRepository,
   IRelationRepository,
   IViewRepository,
-} from '../repositories';
-import { ISchemaChangeRepository } from '../repositories/schemaChangeRepository';
-import { IDeployLogRepository } from '../repositories/deployLogRepository';
+  ILearningRepository,
+  ISchemaChangeRepository,
+  IDeployLogRepository,
+  IDashboardRepository,
+  IDashboardItemRepository,
+} from '@server/repositories';
 import {
   IQueryService,
   IAskingService,
@@ -18,8 +24,13 @@ import {
   IModelService,
   IMDLService,
   IProjectService,
-} from '../services';
-import { ITelemetry } from '../telemetry/telemetry';
+  IDashboardService,
+} from '@server/services';
+import { ITelemetry } from '@server/telemetry/telemetry';
+import {
+  ProjectRecommendQuestionBackgroundTracker,
+  ThreadRecommendQuestionBackgroundTracker,
+} from '@server/backgrounds';
 
 export interface IContext {
   config: IConfig;
@@ -29,6 +40,7 @@ export interface IContext {
   // adaptor
   wrenEngineAdaptor: IWrenEngineAdaptor;
   ibisServerAdaptor: IIbisAdaptor;
+  wrenAIAdaptor: IWrenAIAdaptor;
 
   // services
   projectService: IProjectService;
@@ -37,6 +49,7 @@ export interface IContext {
   deployService: IDeployService;
   askingService: IAskingService;
   queryService: IQueryService;
+  dashboardService: IDashboardService;
 
   // repository
   projectRepository: IProjectRepository;
@@ -47,4 +60,11 @@ export interface IContext {
   viewRepository: IViewRepository;
   deployRepository: IDeployLogRepository;
   schemaChangeRepository: ISchemaChangeRepository;
+  learningRepository: ILearningRepository;
+  dashboardRepository: IDashboardRepository;
+  dashboardItemRepository: IDashboardItemRepository;
+
+  // background trackers
+  projectRecommendQuestionBackgroundTracker: ProjectRecommendQuestionBackgroundTracker;
+  threadRecommendQuestionBackgroundTracker: ThreadRecommendQuestionBackgroundTracker;
 }

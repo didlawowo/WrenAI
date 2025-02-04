@@ -1,21 +1,15 @@
 import logging
 import sys
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import orjson
 from hamilton import base
-from hamilton.experimental.h_async import AsyncDriver
+from hamilton.async_driver import AsyncDriver
 from haystack import Document, component
-from haystack.document_stores.types import DocumentStore
+from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 from langfuse.decorators import observe
 
 from src.core.pipeline import BasicPipeline
 from src.core.provider import DocumentStoreProvider, EmbedderProvider
-from src.utils import (
-    async_timer,
-    timer,
-)
 
 logger = logging.getLogger("wren-ai-service")
 
@@ -42,7 +36,6 @@ class OutputFormatter:
     )
     def run(self, documents: List[Document]):
         list = []
-        logger.debug(f"historical_question_output_formatter: {documents}")
 
         for doc in documents:
             formatted = {
@@ -57,9 +50,8 @@ class OutputFormatter:
 
 
 ## Start of Pipeline
-@async_timer
 @observe(capture_input=False)
-async def count_documents(store: DocumentStore, id: Optional[str] = None) -> int:
+async def count_documents(store: QdrantDocumentStore, id: Optional[str] = None) -> int:
     filters = (
         {
             "operator": "AND",
@@ -74,17 +66,14 @@ async def count_documents(store: DocumentStore, id: Optional[str] = None) -> int
     return document_count
 
 
-@async_timer
 @observe(capture_input=False, capture_output=False)
 async def embedding(count_documents: int, query: str, embedder: Any) -> dict:
     if count_documents:
-        logger.debug(f"query: {query}")
         return await embedder.run(query)
 
     return {}
 
 
-@async_timer
 @observe(capture_input=False)
 async def retrieval(embedding: dict, id: str, retriever: Any) -> dict:
     if embedding:
@@ -108,27 +97,19 @@ async def retrieval(embedding: dict, id: str, retriever: Any) -> dict:
     return {}
 
 
-@timer
 @observe(capture_input=False)
 def filtered_documents(retrieval: dict, score_filter: ScoreFilter) -> dict:
     if retrieval:
-        logger.debug(
-            f"retrieval: {orjson.dumps(retrieval, option=orjson.OPT_INDENT_2).decode()}"
-        )
         return score_filter.run(documents=retrieval.get("documents"))
 
     return {}
 
 
-@timer
 @observe(capture_input=False)
 def formatted_output(
     filtered_documents: dict, output_formatter: OutputFormatter
 ) -> dict:
     if filtered_documents:
-        logger.debug(
-            f"filtered_documents: {orjson.dumps(filtered_documents, option=orjson.OPT_INDENT_2).decode()}"
-        )
         return output_formatter.run(documents=filtered_documents.get("documents"))
 
     return {"documents": []}
@@ -160,28 +141,6 @@ class HistoricalQuestion(BasicPipeline):
             AsyncDriver({}, sys.modules[__name__], result_builder=base.DictResult())
         )
 
-    def visualize(
-        self,
-        query: str,
-        id: Optional[str] = None,
-    ) -> None:
-        destination = "outputs/pipelines/retrieval"
-        if not Path(destination).exists():
-            Path(destination).mkdir(parents=True, exist_ok=True)
-
-        self._pipe.visualize_execution(
-            ["formatted_output"],
-            output_file_path=f"{destination}/historical_question.dot",
-            inputs={
-                "query": query,
-                "id": id or "",
-                **self._components,
-            },
-            show_legend=True,
-            orient="LR",
-        )
-
-    @async_timer
     @observe(name="Historical Question")
     async def run(self, query: str, id: Optional[str] = None):
         logger.info("HistoricalQuestion pipeline is running...")
@@ -196,26 +155,10 @@ class HistoricalQuestion(BasicPipeline):
 
 
 if __name__ == "__main__":
-    from langfuse.decorators import langfuse_context
+    from src.pipelines.common import dry_run_pipeline
 
-    from src.core.engine import EngineConfig
-    from src.core.pipeline import async_validate
-    from src.providers import init_providers
-    from src.utils import init_langfuse, load_env_vars
-
-    load_env_vars()
-    init_langfuse()
-
-    _, embedder_provider, document_store_provider, _ = init_providers(
-        engine_config=EngineConfig()
+    dry_run_pipeline(
+        HistoricalQuestion,
+        "historical_question_retrieval",
+        query="this is a test query",
     )
-
-    pipeline = HistoricalQuestion(
-        embedder_provider=embedder_provider,
-        document_store_provider=document_store_provider,
-    )
-
-    pipeline.visualize("this is a query")
-    async_validate(lambda: pipeline.run("this is a query"))
-
-    langfuse_context.flush()

@@ -3,13 +3,16 @@ import { ProjectResolver } from './resolvers/projectResolver';
 import { ModelResolver } from './resolvers/modelResolver';
 import { AskingResolver } from './resolvers/askingResolver';
 import { DiagramResolver } from './resolvers/diagramResolver';
+import { LearningResolver } from './resolvers/learningResolver';
+import { DashboardResolver } from './resolvers/dashboardResolver';
 import { convertColumnType } from '@server/utils';
 
 const projectResolver = new ProjectResolver();
 const modelResolver = new ModelResolver();
 const askingResolver = new AskingResolver();
 const diagramResolver = new DiagramResolver();
-
+const learningResolver = new LearningResolver();
+const dashboardResolver = new DashboardResolver();
 const resolvers = {
   JSON: GraphQLJSON,
   Query: {
@@ -25,6 +28,7 @@ const resolvers = {
     // Ask
     askingTask: askingResolver.getAskingTask,
     suggestedQuestions: askingResolver.getSuggestedQuestions,
+    instantRecommendedQuestions: askingResolver.getInstantRecommendedQuestions,
 
     // Thread
     thread: askingResolver.getThread,
@@ -39,6 +43,18 @@ const resolvers = {
     // Settings
     settings: projectResolver.getSettings,
     getMDL: modelResolver.getMDL,
+
+    // Learning
+    learningRecord: learningResolver.getLearningRecord,
+
+    // Recommendation questions
+    getThreadRecommendationQuestions:
+      askingResolver.getThreadRecommendationQuestions,
+    getProjectRecommendationQuestions:
+      projectResolver.getProjectRecommendationQuestions,
+
+    // Dashboard
+    dashboardItems: dashboardResolver.getDashboardItems,
   },
   Mutation: {
     deploy: modelResolver.deploy,
@@ -68,6 +84,8 @@ const resolvers = {
     // Ask
     createAskingTask: askingResolver.createAskingTask,
     cancelAskingTask: askingResolver.cancelAskingTask,
+    createInstantRecommendedQuestions:
+      askingResolver.createInstantRecommendedQuestions,
 
     // Thread
     createThread: askingResolver.createThread,
@@ -75,6 +93,20 @@ const resolvers = {
     deleteThread: askingResolver.deleteThread,
     createThreadResponse: askingResolver.createThreadResponse,
     previewData: askingResolver.previewData,
+    previewBreakdownData: askingResolver.previewBreakdownData,
+
+    // Generate Thread Response Breakdown
+    generateThreadResponseBreakdown:
+      askingResolver.generateThreadResponseBreakdown,
+
+    // Generate Thread Response Answer
+    generateThreadResponseAnswer: askingResolver.generateThreadResponseAnswer,
+
+    // Generate Thread Response Chart
+    generateThreadResponseChart: askingResolver.generateThreadResponseChart,
+
+    // Adjust Thread Response Chart
+    adjustThreadResponseChart: askingResolver.adjustThreadResponseChart,
 
     // Views
     createView: modelResolver.createView,
@@ -90,6 +122,21 @@ const resolvers = {
 
     // preview
     previewSql: modelResolver.previewSql,
+
+    // Learning
+    saveLearningRecord: learningResolver.saveLearningRecord,
+
+    // Recommendation questions
+    generateThreadRecommendationQuestions:
+      askingResolver.generateThreadRecommendationQuestions,
+    generateProjectRecommendationQuestions:
+      askingResolver.generateProjectRecommendationQuestions,
+
+    // Dashboard
+    updateDashboardItemLayouts: dashboardResolver.updateDashboardItemLayouts,
+    createDashboardItem: dashboardResolver.createDashboardItem,
+    deleteDashboardItem: dashboardResolver.deleteDashboardItem,
+    previewItemSQL: dashboardResolver.previewItemSQL,
   },
   ThreadResponse: askingResolver.getThreadResponseNestedResolver(),
   DetailStep: askingResolver.getDetailStepNestedResolver(),

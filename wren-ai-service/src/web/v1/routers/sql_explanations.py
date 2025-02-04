@@ -39,7 +39,6 @@ Endpoints:
        "mdl_hash": "hash_value",                             # Optional hash for the model used
        "thread_id": "thread-123",                            # Optional identifier for the thread
        "project_id": "project-456",                          # Optional identifier for the project
-       "user_id": "user-789"                                 # Optional identifier for the user
      }
    - Response: SQLExplanationResponse
      {
@@ -98,4 +97,3 @@ async def get_sql_explanation_result(
     return service_container.sql_explanation_service.get_sql_explanation_result(
         SQLExplanationResultRequest(query_id=query_id)
     )
-

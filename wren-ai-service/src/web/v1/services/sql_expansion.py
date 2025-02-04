@@ -6,7 +6,8 @@ from langfuse.decorators import observe
 from pydantic import BaseModel
 
 from src.core.pipeline import BasicPipeline
-from src.utils import async_timer, remove_sql_summary_duplicates, trace_metadata
+from src.utils import trace_metadata
+from src.web.v1.services import Configuration
 from src.web.v1.services.ask import AskError, AskHistory
 from src.web.v1.services.ask_details import SQLBreakdown
 
@@ -14,10 +15,6 @@ logger = logging.getLogger("wren-ai-service")
 
 
 # POST /v1/sql-expansions
-class SqlExpansionConfigurations(BaseModel):
-    language: str = "English"
-
-
 class SqlExpansionRequest(BaseModel):
     _query_id: str | None = None
     query: str
@@ -26,10 +23,7 @@ class SqlExpansionRequest(BaseModel):
     project_id: Optional[str] = None
     mdl_hash: Optional[str] = None
     thread_id: Optional[str] = None
-    user_id: Optional[str] = None
-    configurations: SqlExpansionConfigurations = SqlExpansionConfigurations(
-        language="English"
-    )
+    configurations: Optional[Configuration] = Configuration()
 
     @property
     def query_id(self) -> str:
@@ -104,7 +98,6 @@ class SqlExpansionService:
             filter(lambda x: x["type"] == "DRY_RUN", invalid_generation_results)
         )
 
-    @async_timer
     @observe(name="SQL Expansion")
     @trace_metadata
     async def sql_expansion(
@@ -133,16 +126,15 @@ class SqlExpansionService:
                     status="searching",
                 )
 
-                query_for_retrieval = (
-                    sql_expansion_request.history.summary
-                    + " "
-                    + sql_expansion_request.query
-                )
+                query_for_retrieval = sql_expansion_request.query
                 retrieval_result = await self._pipelines["retrieval"].run(
                     query=query_for_retrieval,
                     id=sql_expansion_request.project_id,
                 )
-                documents = retrieval_result.get("construct_retrieval_results", [])
+                _retrieval_result = retrieval_result.get(
+                    "construct_retrieval_results", {}
+                )
+                documents = _retrieval_result.get("retrieval_results", [])
 
                 if not documents:
                     logger.exception(
@@ -170,6 +162,7 @@ class SqlExpansionService:
                     contexts=documents,
                     history=sql_expansion_request.history,
                     project_id=sql_expansion_request.project_id,
+                    configuration=sql_expansion_request.configurations,
                 )
 
                 valid_generation_results = []
@@ -198,16 +191,12 @@ class SqlExpansionService:
                 if valid_generation_results:
                     sql_summary_results = await self._pipelines["sql_summary"].run(
                         query=sql_expansion_request.query,
-                        sqls=valid_generation_results,
+                        sqls=[result.get("sql") for result in valid_generation_results],
                         language=sql_expansion_request.configurations.language,
                     )
                     valid_sql_summary_results = sql_summary_results["post_process"][
                         "sql_summary_results"
                     ]
-                    # remove duplicates of valid_sql_summary_results, which consists of a sql and a summary
-                    valid_sql_summary_results = remove_sql_summary_duplicates(
-                        valid_sql_summary_results
-                    )
 
                 if not valid_sql_summary_results:
                     logger.exception(
@@ -224,10 +213,11 @@ class SqlExpansionService:
                     return results
 
                 api_results = SqlExpansionResultResponse.SqlExpansionResult(
-                    description=sql_expansion_request.history.summary,
+                    # at the moment, we skip the description, since no description is generated in ai pipelines
+                    description="",
                     steps=[
                         {
-                            "sql": valid_generation_results[0]["sql"],
+                            "sql": valid_sql_summary_results[0]["sql"],
                             "summary": valid_sql_summary_results[0]["summary"],
                             "cte_name": "",
                         }

@@ -25,6 +25,8 @@ export const ERROR_TEXTS = {
     },
     HOST: {
       REQUIRED: 'Please input host.',
+      INVALID:
+        "Invalid host. Use 'host.docker.internal' on macOS/Windows to connect to the local database.",
     },
     PORT: {
       REQUIRED: 'Please input port.',
@@ -41,8 +43,11 @@ export const ERROR_TEXTS = {
     SCHEMA: {
       REQUIRED: 'Please input schema name.',
     },
-    CATALOG: {
-      REQUIRED: 'Please input catalog name.',
+    SCHEMAS: {
+      REQUIRED: 'Please input list of catalog.schema separated by comma.',
+    },
+    ACCOUNT: {
+      REQUIRED: 'Please input account.',
     },
   },
   ADD_RELATION: {
